@@ -126,6 +126,8 @@ class _OffSetDialogState extends State<OffSetDialog> {
                           await SharedPreference().saveOffsetGyroscope(value.toString());
                         } else if (widget.title == "magnetometer") {
                           await SharedPreference().saveOffsetMagnetometer(value.toString());
+                        } else if (widget.title == "sampling rate") {
+                          await SharedPreference().saveSamplingRate(value.toString());
                         }
 
                         Get.back(result: value.toString());

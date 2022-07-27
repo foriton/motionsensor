@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:get/get.dart';
 import 'package:motionsensor/dialog/filename_dialog.dart';
 import 'package:motionsensor/page/setting_page.dart';
@@ -67,25 +68,28 @@ class _HomePageState extends State<HomePage> {
   String _offSetGyroscope = "0.05";
   String _offSetMagnetometer = "0.10";
 
+  String _samplingRate = "10";
+
   bool _isRecording = false;
   bool _isSaving = false;
 
   String? _saveFileName = "";
 
   bool _useOnlyAccelerometer = true;
-  bool _proximityValues = false;
 
   @override
   void initState() {
-    Wakelock.enable();
-
     super.initState();
     loadStoredValues();
   }
 
   @override
   void dispose() {
-    Wakelock.disable();
+    if (Platform.isIOS) {
+      Wakelock.disable();
+    } else {
+      FlutterBackground.disableBackgroundExecution();
+    }
 
     super.dispose();
     stopSubscription();
@@ -118,6 +122,7 @@ class _HomePageState extends State<HomePage> {
       _offSetUserAccelerometer = await SharedPreference().getOffsetUserAccelerometer();
       _offSetGyroscope = await SharedPreference().getOffsetGyroscope();
       _offSetMagnetometer = await SharedPreference().getOffsetMagnetometer();
+      _samplingRate = await SharedPreference().getSamplingRate();
     } else {
       _offSetAccelerometer = "0.001";
       _offSetUserAccelerometer = "0.001";
@@ -165,17 +170,19 @@ class _HomePageState extends State<HomePage> {
             // }
             // }
 
-            if (_accelerometerList.length > _maxListLength) {
-              _accelerometerList.removeAt(0);
-            }
-
             DateTime now = DateTime.now();
             int currentMilliSeconds = now.millisecondsSinceEpoch;
             DateTime date = DateTime.fromMillisecondsSinceEpoch(currentMilliSeconds);
 
-            _accelerometerList.add(
-              SensorValue(valueX: valueX, valueY: valueY, valueZ: valueZ, timeStamp: date.toString().substring(11)),
-            );
+            if (!_isRecording) {
+              if (_accelerometerList.length > _maxListLength) {
+                _accelerometerList.removeAt(0);
+              }
+
+              _accelerometerList.add(
+                SensorValue(valueX: valueX, valueY: valueY, valueZ: valueZ, timeStamp: date.toString().substring(11)),
+              );
+            }
 
             if (_isRecording && _onOffAccelerometer) {
               _storedAccelerometerList.add(
@@ -183,7 +190,7 @@ class _HomePageState extends State<HomePage> {
               );
             }
 
-            if (mounted) {
+            if (!_isRecording && mounted) {
               setState(() {});
             }
           },
@@ -229,17 +236,19 @@ class _HomePageState extends State<HomePage> {
             // }
             // }
 
-            if (_userAccelerometerList.length > _maxListLength) {
-              _userAccelerometerList.removeAt(0);
-            }
-
             DateTime now = DateTime.now();
             int currentMilliSeconds = now.millisecondsSinceEpoch;
             DateTime date = DateTime.fromMillisecondsSinceEpoch(currentMilliSeconds);
 
-            _userAccelerometerList.add(
-              SensorValue(valueX: valueX, valueY: valueY, valueZ: valueZ, timeStamp: date.toString().substring(11)),
-            );
+            if (!_isRecording) {
+              if (_userAccelerometerList.length > _maxListLength) {
+                _userAccelerometerList.removeAt(0);
+              }
+
+              _userAccelerometerList.add(
+                SensorValue(valueX: valueX, valueY: valueY, valueZ: valueZ, timeStamp: date.toString().substring(11)),
+              );
+            }
 
             if (_isRecording && _onOffUserAccelerometer) {
               _storedUserAccelerometerList.add(
@@ -247,7 +256,7 @@ class _HomePageState extends State<HomePage> {
               );
             }
 
-            if (mounted) {
+            if (!_isRecording && mounted) {
               setState(() {});
             }
           },
@@ -486,6 +495,13 @@ class _HomePageState extends State<HomePage> {
                               }
 
                               _isRecording = true;
+
+                              if (Platform.isIOS) {
+                                Wakelock.enable();
+                              } else {
+                                await FlutterBackground.enableBackgroundExecution();
+                              }
+
                               Get.snackbar("저장", "저장시작",
                                   snackPosition: SnackPosition.BOTTOM, duration: const Duration(milliseconds: 3000));
 
@@ -502,6 +518,13 @@ class _HomePageState extends State<HomePage> {
                               }
 
                               _isRecording = false;
+
+                              if (Platform.isIOS) {
+                                Wakelock.disable();
+                              } else {
+                                await FlutterBackground.disableBackgroundExecution();
+                              }
+
                               _isSaving = true;
 
                               if (mounted) {
@@ -527,7 +550,41 @@ class _HomePageState extends State<HomePage> {
 
                               if (_onOffAccelerometer && _storedAccelerometerList.isNotEmpty) {
                                 String accelerometerName = "";
+                                String resultStr = "";
 
+                                // if (_samplingRate.isNotEmpty &&
+                                //     int.tryParse(_samplingRate) != null &&
+                                //     int.tryParse(_samplingRate)! > 0) {
+                                //   if (_saveFileName != null && _saveFileName!.isNotEmpty) {
+                                //     accelerometerName =
+                                //         "$directoryPath/accelerometer_${_saveFileName}_${_samplingRate}ms.csv";
+                                //   } else {
+                                //     accelerometerName =
+                                //         "$directoryPath/accelerometer_${now.toString()}_${_samplingRate}ms.csv";
+                                //   }
+                                //
+                                //   File accelerometerFile10ms = File(accelerometerName);
+                                //
+                                //   resultStr = makeSavedStringToFile(
+                                //       _storedAccelerometerList, int.tryParse(_samplingRate) ?? 10);
+                                //   await accelerometerFile10ms.writeAsString(resultStr);
+                                //   savedFileNames = "${accelerometerName.split("/").last}\n";
+                                // }
+
+                                // accelerometerName = "";
+                                // if (_saveFileName != null && _saveFileName!.isNotEmpty) {
+                                //   accelerometerName = "$directoryPath/accelerometer_${_saveFileName}_5ms.csv";
+                                // } else {
+                                //   accelerometerName = "$directoryPath/accelerometer_${now.toString()}_5ms.csv";
+                                // }
+                                //
+                                // File accelerometerFile5ms = File(accelerometerName);
+                                // resultStr = "";
+                                // resultStr = makeSavedStringToFile(_storedAccelerometerList, 5);
+                                // await accelerometerFile5ms.writeAsString(resultStr);
+                                // savedFileNames = "${accelerometerName.split("/").last}\n";
+
+                                accelerometerName = "";
                                 if (_saveFileName != null && _saveFileName!.isNotEmpty) {
                                   accelerometerName = "$directoryPath/accelerometer_$_saveFileName.csv";
                                 } else {
@@ -535,28 +592,16 @@ class _HomePageState extends State<HomePage> {
                                 }
 
                                 File accelerometerFile = File(accelerometerName);
-
-                                debugPrint("item count ${_storedAccelerometerList.length}");
-
-                                String resultStr = makeSavedStringToFile(_storedAccelerometerList);
-                                await accelerometerFile.writeAsString(resultStr);
-                                savedFileNames = "${accelerometerName.split("/").last}\n";
-
-                                accelerometerName = "";
-                                if (_saveFileName != null && _saveFileName!.isNotEmpty) {
-                                  accelerometerName = "$directoryPath/accelerometer_${_saveFileName}_original.csv";
-                                } else {
-                                  accelerometerName = "$directoryPath/accelerometer_${now.toString()}_original.csv";
-                                }
-
-                                File accelerometerFileOriginal = File(accelerometerName);
-
                                 resultStr = "";
                                 for (int i = 0; i < _storedAccelerometerList.length; i++) {
+                                  if (resultStr.isNotEmpty) {
+                                    resultStr += "\n";
+                                  }
+
                                   resultStr +=
-                                      "\n${_storedAccelerometerList[i].timeStamp},${_storedAccelerometerList[i].valueX},${_storedAccelerometerList[i].valueY},${_storedAccelerometerList[i].valueZ}";
+                                      "${_storedAccelerometerList[i].timeStamp},${_storedAccelerometerList[i].valueX},${_storedAccelerometerList[i].valueY},${_storedAccelerometerList[i].valueZ}";
                                 }
-                                await accelerometerFileOriginal.writeAsString(resultStr);
+                                await accelerometerFile.writeAsString(resultStr);
                                 _storedAccelerometerList = [];
 
                                 savedFileNames += "${accelerometerName.split("/").last}\n";
@@ -564,37 +609,60 @@ class _HomePageState extends State<HomePage> {
 
                               if (_onOffUserAccelerometer && _storedUserAccelerometerList.isNotEmpty) {
                                 String userAccelerometerName = "";
+                                String resultStr = "";
 
+                                // if (_samplingRate.isNotEmpty &&
+                                //     int.tryParse(_samplingRate) != null &&
+                                //     int.tryParse(_samplingRate)! > 0) {
+                                //   if (_saveFileName != null && _saveFileName!.isNotEmpty) {
+                                //     userAccelerometerName =
+                                //         "$directoryPath/user_accelerometer_${_saveFileName}_${_samplingRate}ms.csv";
+                                //   } else {
+                                //     userAccelerometerName =
+                                //         "$directoryPath/user_accelerometer_${now.toString()}_${_samplingRate}ms.csv";
+                                //   }
+                                //   File userAccelerometerFile10ms = File(userAccelerometerName);
+                                //
+                                //   resultStr = makeSavedStringToFile(
+                                //       _storedUserAccelerometerList, int.tryParse(_samplingRate) ?? 10);
+                                //
+                                //   await userAccelerometerFile10ms.writeAsString(resultStr);
+                                //   savedFileNames += "${userAccelerometerName.split("/").last}\n";
+                                // }
+
+                                // userAccelerometerName = "";
+                                // if (_saveFileName != null && _saveFileName!.isNotEmpty) {
+                                //   userAccelerometerName = "$directoryPath/user_accelerometer_${_saveFileName}_5ms.csv";
+                                // } else {
+                                //   userAccelerometerName = "$directoryPath/user_accelerometer_${now.toString()}_5ms.csv";
+                                // }
+                                // File userAccelerometerFile5ms = File(userAccelerometerName);
+                                //
+                                // resultStr = "";
+                                // resultStr = makeSavedStringToFile(_storedUserAccelerometerList, 5);
+                                // await userAccelerometerFile5ms.writeAsString(resultStr);
+                                // savedFileNames += "${userAccelerometerName.split("/").last}\n";
+
+                                userAccelerometerName = "";
                                 if (_saveFileName != null && _saveFileName!.isNotEmpty) {
                                   userAccelerometerName = "$directoryPath/user_accelerometer_$_saveFileName.csv";
                                 } else {
                                   userAccelerometerName = "$directoryPath/user_accelerometer_${now.toString()}.csv";
                                 }
+
                                 File userAccelerometerFile = File(userAccelerometerName);
-
-                                debugPrint("item count ${_storedUserAccelerometerList.length}");
-
-                                String resultStr = makeSavedStringToFile(_storedUserAccelerometerList);
-                                await userAccelerometerFile.writeAsString(resultStr);
-                                savedFileNames += "${userAccelerometerName.split("/").last}\n";
-
-                                userAccelerometerName = "";
-                                if (_saveFileName != null && _saveFileName!.isNotEmpty) {
-                                  userAccelerometerName =
-                                      "$directoryPath/user_accelerometer_${_saveFileName}_original.csv";
-                                } else {
-                                  userAccelerometerName =
-                                      "$directoryPath/user_accelerometer_${now.toString()}_original.csv";
-                                }
-
-                                File userAccelerometerFileOriginal = File(userAccelerometerName);
 
                                 resultStr = "";
                                 for (int i = 0; i < _storedUserAccelerometerList.length; i++) {
+                                  if (resultStr.isNotEmpty) {
+                                    resultStr += "\n";
+                                  }
+
                                   resultStr +=
-                                      "\n${_storedUserAccelerometerList[i].timeStamp};${_storedUserAccelerometerList[i].valueX};${_storedUserAccelerometerList[i].valueY};${_storedUserAccelerometerList[i].valueZ};";
+                                      "${_storedUserAccelerometerList[i].timeStamp},${_storedUserAccelerometerList[i].valueX},${_storedUserAccelerometerList[i].valueY},${_storedUserAccelerometerList[i].valueZ}";
                                 }
-                                await userAccelerometerFileOriginal.writeAsString(resultStr);
+
+                                await userAccelerometerFile.writeAsString(resultStr);
 
                                 _storedUserAccelerometerList = [];
                                 savedFileNames += "${userAccelerometerName.split("/").last}\n";
@@ -1247,7 +1315,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  String makeSavedStringToFile(List<SensorValue> pList) {
+  String makeSavedStringToFile(List<SensorValue> pList, int duration) {
     String resultStr = "";
 
     if (pList.isEmpty) {
@@ -1275,7 +1343,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       resultStr += "${startTime.toString()},$valueX,$valueY,$valueZ";
-      startTime = startTime.add(const Duration(milliseconds: 10));
+      startTime = startTime.add(Duration(milliseconds: duration));
     }
 
     return resultStr;

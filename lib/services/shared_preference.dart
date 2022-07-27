@@ -5,6 +5,7 @@ class SharedPreference {
   static String offsetUserAccelerometerKey = "offset_user_accelerometer";
   static String offsetGyroscopeKey = "offset_gyroscope2";
   static String offsetMagnetometerKey = "offset_magnetometer";
+  static String samplingRateKey = "sampling_rate";
 
   static String saveAccelerometerKey = "save_accelerometer";
   static String saveUserAccelerometerKey = "save_user_accelerometer";
@@ -31,6 +32,11 @@ class SharedPreference {
     return prefs.setString(offsetMagnetometerKey, magnetometer);
   }
 
+  Future<bool> saveSamplingRate(String rate) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.setString(samplingRateKey, rate);
+  }
+
   Future<String> getOffsetAccelerometer() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(offsetAccelerometerKey) ?? '0.50';
@@ -49,6 +55,11 @@ class SharedPreference {
   Future<String> getOffsetMagnetometer() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(offsetMagnetometerKey) ?? '2.00';
+  }
+
+  Future<String> getSamplingRate() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(samplingRateKey) ?? '10';
   }
 
   Future<bool> saveSaveAccelerometer(bool onOff) async {

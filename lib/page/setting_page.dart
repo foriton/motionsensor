@@ -23,6 +23,8 @@ class _SettingPageState extends State<SettingPage> {
   String _offSetGyroscope = "0.01";
   String _offSetMagnetometer = "0.01";
 
+  String _samplingRate = "10";
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +39,7 @@ class _SettingPageState extends State<SettingPage> {
       _offSetUserAccelerometer = await SharedPreference().getOffsetUserAccelerometer();
       _offSetGyroscope = await SharedPreference().getOffsetGyroscope();
       _offSetMagnetometer = await SharedPreference().getOffsetMagnetometer();
+      _samplingRate = await SharedPreference().getSamplingRate();
 
       if (mounted) {
         setState(() {});
@@ -77,20 +80,20 @@ class _SettingPageState extends State<SettingPage> {
                   }
                 },
               ),
-              // CustomMenuItem(
-              //   title: "userAccelerometer",
-              //   iconData: Icons.compare_arrows_rounded,
-              //   isSwitchItem: true,
-              //   switchOnOff: _onOffUserAccelerometer,
-              //   onPressed: () async {
-              //     _onOffUserAccelerometer = !_onOffUserAccelerometer;
-              //     SharedPreference().saveSaveUserAccelerometer(_onOffUserAccelerometer);
-              //
-              //     if (mounted) {
-              //       setState(() {});
-              //     }
-              //   },
-              // ),
+              CustomMenuItem(
+                title: "userAccelerometer",
+                iconData: Icons.compare_arrows_rounded,
+                isSwitchItem: true,
+                switchOnOff: _onOffUserAccelerometer,
+                onPressed: () async {
+                  _onOffUserAccelerometer = !_onOffUserAccelerometer;
+                  SharedPreference().saveSaveUserAccelerometer(_onOffUserAccelerometer);
+
+                  if (mounted) {
+                    setState(() {});
+                  }
+                },
+              ),
               // CustomMenuItem(
               //   title: "gyroscope",
               //   iconData: Icons.sports_gymnastics,
@@ -221,6 +224,36 @@ class _SettingPageState extends State<SettingPage> {
               //
               //     if (result != null && result.isNotEmpty) {
               //       _offSetMagnetometer = result;
+              //
+              //       if (mounted) {
+              //         setState(() {});
+              //       }
+              //     }
+              //   },
+              // ),
+              // const TextTitle(
+              //   titleText: "Sampling Rate",
+              //   fontSize: 22,
+              // ),
+              // CustomMenuItem(
+              //   title: "Sampling Rate",
+              //   isTextItem: true,
+              //   textItemValue: _samplingRate,
+              //   iconData: Icons.change_circle_rounded,
+              //   onPressed: () async {
+              //     String? result = await showDialog(
+              //       context: context,
+              //       builder: (BuildContext context) {
+              //         return OffSetDialog(
+              //           title: "sampling rate",
+              //           value: _samplingRate,
+              //         );
+              //       },
+              //       barrierDismissible: false,
+              //     );
+              //
+              //     if (result != null && result.isNotEmpty) {
+              //       _samplingRate = result;
               //
               //       if (mounted) {
               //         setState(() {});
